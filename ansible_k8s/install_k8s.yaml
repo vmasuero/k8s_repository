@@ -1,0 +1,36 @@
+---
+- hosts: k8sservers
+  remote_user: root
+  vars:
+    k8s_status: {}
+  tasks:
+    - name: ROLE-> Check Status Process
+      include_role:
+        name:  checkStatus
+
+    - debug: var=k8s_status
+
+    - name: ROLE-> Installing PreFlight Conditions
+      include_role:
+        name:  preflight
+      when: not k8s_status.preflight
+
+    - name: Updating Status
+      command: /bin/true
+      notify: Update Status
+
+    - name: ROLE-> Installing Docker
+      include_role:
+        name:  installDocker
+      when: false # not k8s_status.installDocker
+      
+
+    - debug: var=k8s_status
+
+  handlers:
+    - name: Update Status
+      copy:
+        dest: /opt/status_k8s.json
+        content: "{{ k8s_status | to_nice_json  }}"    
+
+  

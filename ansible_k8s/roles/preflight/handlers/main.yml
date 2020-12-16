@@ -1,0 +1,5 @@
+---
+- name: Update Status Preflight
+  copy:
+    dest: /opt/status_k8s.json
+    content: "{{ k8s_status | to_nice_json  }}"    

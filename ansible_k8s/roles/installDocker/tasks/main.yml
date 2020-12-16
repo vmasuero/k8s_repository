@@ -1,0 +1,74 @@
+---
+  - name: Add Docker repo
+    get_url:
+      url: https://download.docker.com/linux/centos/docker-ce.repo
+      dest: /etc/yum.repos.d/docer-ce.repo
+    when: false
+
+  - name: Enable Docker Edge repo
+    ini_file:
+      dest: /etc/yum.repos.d/docer-ce.repo
+      section: 'docker-ce-edge'
+      option: enabled
+      value: '0'
+    when: false
+
+  - name: Enable Docker Test repo
+    ini_file:
+      dest: /etc/yum.repos.d/docer-ce.repo
+      section: 'docker-ce-test'
+      option: enabled
+      value: '0'
+    when: false
+
+  - name: Installing Docker
+    yum:
+      name:
+        - docker-ce
+      state: present
+    when: false
+
+  - set_fact:
+      enable_service_name: docker
+      enable_service: yes
+      enable_service_state: 'started'
+  
+  - name: Trigger service {{ enable_service_name }}
+    command: /bin/true
+    notify: Systemd Handler
+    when: false
+
+  - name: Trigger Systemd {{ enable_service_name }}
+    command: /bin/true
+    notify: Trigger Systemd
+    when: false
+
+  - name: Appendig User Vagrant to Docker
+    user:
+      name: vagrant
+      groups: docker
+      append: yes
+    when: false
+  
+  - name: Reload SysCtl  net.bridge.bridge-nf-call-ip6tables
+    sysctl:
+      name: net.bridge.bridge-nf-call-ip6tables
+      value: '1'
+      reload: no
+    when: false
+    
+  - name: Reload SysCtl  net.bridge.bridge-nf-call-iptables
+    sysctl:
+      name: net.bridge.bridge-nf-call-iptables
+      value: '1'
+      reload: yes
+    when: false
+
+  - name:  Update Status Project 1/2
+    set_fact:
+      k8s_status:
+        k8s_docker: true
+
+  - name: Notify Status
+    command: echo ''
+    notify: Update Status Preflight 1
