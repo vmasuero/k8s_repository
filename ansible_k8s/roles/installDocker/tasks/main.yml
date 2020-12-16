@@ -66,9 +66,9 @@
 
   - name:  Update Status Project 1/2
     set_fact:
-      k8s_status:
-        k8s_docker: true
-
-  - name: Notify Status
-    command: echo ''
-    notify: Update Status Preflight 1
+      update_status:
+        - installDocker: true
+    
+  - set_fact:
+      k8s_status: "{{ k8s_status | combine({item.key: item.value}) }}"
+    with_dict: "{{ update_status }}"

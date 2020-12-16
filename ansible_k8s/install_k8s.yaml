@@ -8,8 +8,6 @@
       include_role:
         name:  checkStatus
 
-    - debug: var=k8s_status
-
     - name: ROLE-> Installing PreFlight Conditions
       include_role:
         name:  preflight
@@ -18,12 +16,17 @@
     - name: Updating Status
       command: /bin/true
       notify: Update Status
+      when: not k8s_status.preflight
 
     - name: ROLE-> Installing Docker
       include_role:
         name:  installDocker
-      when: false # not k8s_status.installDocker
+      when: not k8s_status.installDocker
       
+    - name: Updating Status
+      command: /bin/true
+      notify: Update Status
+      when: not k8s_status.installDocker
 
     - debug: var=k8s_status
 
