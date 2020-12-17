@@ -11,29 +11,38 @@
     - name: ROLE-> Installing PreFlight Conditions
       include_role:
         name:  preflight
-      when: not k8s_status.preflight
-
-    - name: Updating Status
-      command: /bin/true
-      notify: Update Status
-      when: not k8s_status.preflight
+      when:  not k8s_status.preflight
 
     - name: ROLE-> Installing Docker
       include_role:
         name:  installDocker
       when: not k8s_status.installDocker
-      
-    - name: Updating Status
-      command: /bin/true
-      notify: Update Status
-      when: not k8s_status.installDocker
 
-    - debug: var=k8s_status
+    - name: ROLE-> Installing Kubeadm
+      include_role:
+        name:  installKubeadm
+      when: not k8s_status.installKubeadm
 
-  handlers:
-    - name: Update Status
-      copy:
-        dest: /opt/status_k8s.json
-        content: "{{ k8s_status | to_nice_json  }}"    
+## Configuring KubeAdmin, and CALICO in Master and Nodes
+- hosts: k8smaster
+  remote_user: root
+  tasks:
+    - name: ROLE-> Configuring KubeAdmin
+      include_role:
+        name:  configureKubeadm
+      when: not k8s_status.configureKubeadm
+    
+- hosts: k8snode1 k8snode2
+  remote_user: root
+  tasks:
+    - name: Get Token from Master
+      command: kubeadm token create --print-join-command 
+      delegate_to: k8smaster
+      register:  token_out
+      when: false
 
-  
+    - name: Adding Nodes
+      command: "{{ token_out.stdout }}"
+      when: false
+
+

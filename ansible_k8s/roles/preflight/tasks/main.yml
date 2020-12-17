@@ -1,11 +1,9 @@
 ---
 - name: Restarting Server
   reboot:
-  when: false
 
 - name: Do Pinging
   ping:
-  when: false
 
 - name: Installing Pre-requisities 
   yum:
@@ -15,40 +13,32 @@
       - lvm2
       - wget
       - device-mapper-persistent-data
-    state: present
-  when: false
-  
+    state: present 
+
 - name: Disable Firewalld
   systemd:
     name: firewalld
     enabled: no
-  when: false
 
 - name: Stop Firewalld
   service:
     name: firewalld
     state: stopped
-  when: false
 
 - name: Disable SELinux 1/2
-  command: setenforce 0
-  when: false
+  shell: setenforce 0
 
 - name: Disable SELinux 2/2
   replace:
     path: /etc/sysconfig/selinux
     regexp: '^SELINUX=enforcing'
     replace: 'SELINUX=disabled'
-  when: false
   
-- name:  Update Status Project 1/2
-  set_fact:
-    update_status:
-      - preflight: true
-  
-- set_fact:
-    k8s_status: "{{ k8s_status | combine({item.key: item.value}) }}"
-  with_dict: "{{ update_status }}"
+- import_tasks: ../../utils.yaml
+  vars:
+    role_status: 'preflight'
+
+
 
 
 

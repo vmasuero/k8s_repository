@@ -1,0 +1,57 @@
+---
+- name: Installing Kubernetes Cluster
+  command: kubeadm init --pod-network-cidr={{ net_pod_networks }}
+
+- name: Installing Kube directory
+  file:
+    path: /home/vagrant/.kube
+    owner: vagrant
+    group: vagrant
+    mode: 'u+rwx'
+    state: directory
+
+- name: Change directory privilegies
+  file:
+    path: /etc/kubernetes/admin.conf
+    mode: '0777'
+
+- name: copy admin.conf to kube
+  become_user: vagrant
+  command: cp /etc/kubernetes/admin.conf  /home/vagrant/.kube/config
+
+- name: Set owner to Kube directory
+  become_user: vagrant
+  file:
+    path: /home/vagrant/.kube
+    owner: vagrant
+    group: vagrant
+    mode: 'u+rwx'
+    state: directory
+    recurse: yes
+
+- import_tasks: ../../utils.yaml
+  vars:
+    role_status: 'configureKubeadm' 
+
+#- name: Get Token
+#  command: kubeadm token create --print-join-command 
+#  register: shell_script_join_node
+  
+#- add_host:
+#    name: "shell_join_node"
+#    shared_variable: "{{shell_script_join_node}}"
+
+- name: Installing Calico
+  command: kubectl create -f https://docs.projectcalico.org/manifests/calico.yaml
+  become: yes
+  become_user: vagrant
+
+- name: Download Calico CTL
+  get_url:
+    url: https://github.com/projectcalico/calicoctl/releases/download/v3.17.0/calicoctl
+    dest: /usr/local/bin
+    mode: 'a+x'
+
+- import_tasks: utils.yaml
+  vars:
+    role_status: 'configureKubeadm'

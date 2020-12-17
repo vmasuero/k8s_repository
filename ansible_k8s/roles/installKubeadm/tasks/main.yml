@@ -1,0 +1,40 @@
+---
+- name: Disable Swap  1/2
+  shell: sed -i '/swap/d' /etc/fstab
+
+- name: Disable Swap 2/2
+  command: swapoff -a
+
+- name:  Adding kubernetes Repo
+  copy:
+    dest: /etc/yum.repos.d/kubernetes.repo
+    content: |
+      [kubernetes]
+      name=Kubernetes
+      baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+      enabled=1
+      gpgcheck=1
+      repo_gpgcheck=1
+      gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg 
+
+- name: Installing Kubernetes
+  yum:
+    name:
+      - kubeadm
+      - kubelet
+      - kubectl
+    state: present
+
+- name: Enable kubelet Service
+  systemd:
+    name: kubelet
+    enabled: yes
+
+- name: Start Kubelet
+  service:
+    name: kubelet
+    state: started
+
+- import_tasks: ../../utils.yaml
+  vars:
+    role_status: 'installKubeadm'
