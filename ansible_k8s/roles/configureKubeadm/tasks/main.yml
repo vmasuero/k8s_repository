@@ -1,6 +1,7 @@
 ---
 - name: Installing Kubernetes Cluster
   command: kubeadm init --pod-network-cidr={{ net_pod_networks }}
+  when: true
 
 - name: Installing Kube directory
   file:
@@ -9,15 +10,18 @@
     group: vagrant
     mode: 'u+rwx'
     state: directory
+  when: true
 
 - name: Change directory privilegies
   file:
     path: /etc/kubernetes/admin.conf
     mode: '0777'
+  when: true
 
 - name: copy admin.conf to kube
   become_user: vagrant
   command: cp /etc/kubernetes/admin.conf  /home/vagrant/.kube/config
+  when: true
 
 - name: Set owner to Kube directory
   become_user: vagrant
@@ -28,30 +32,69 @@
     mode: 'u+rwx'
     state: directory
     recurse: yes
-
-- import_tasks: ../../utils.yaml
-  vars:
-    role_status: 'configureKubeadm' 
-
-#- name: Get Token
-#  command: kubeadm token create --print-join-command 
-#  register: shell_script_join_node
-  
-#- add_host:
-#    name: "shell_join_node"
-#    shared_variable: "{{shell_script_join_node}}"
+  when: true
 
 - name: Installing Calico
   command: kubectl create -f https://docs.projectcalico.org/manifests/calico.yaml
   become: yes
   become_user: vagrant
+  when: true
 
 - name: Download Calico CTL
   get_url:
     url: https://github.com/projectcalico/calicoctl/releases/download/v3.17.0/calicoctl
     dest: /usr/local/bin
     mode: 'a+x'
+  when: true
+
+- name: Installing MetalLB 1/3
+  command: kubectl apply -f "{{ item }}"
+  become: yes
+  become_user: vagrant
+  with_items:
+    - https://raw.githubusercontent.com/metallb/metallb/v0.9.5/manifests/namespace.yaml
+    - https://raw.githubusercontent.com/metallb/metallb/v0.9.5/manifests/metallb.yaml
+  when: true
+
+- name: Installing MetalLB 2/3
+  command: kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)"
+  become: yes
+  become_user: vagrant
+  when: true
+
+- name: Configuring MetalLB 3/3
+  template:
+    src: conf_metallb.j2
+    dest: /home/vagrant/conf_metallb.yaml
+    owner: vagrant
+    group: vagrant
+    mode: 0644
+  when: true
+
+- name: Configuring MetalLB 2/2
+  command: kubectl apply -f /home/vagrant/conf_metallb.yaml
+  become: yes
+  become_user: vagrant
+  when: true
+
+- name: Installing GIT
+  yum:
+    name:
+      - git
+
+- name: Installing Ingress  for BareMetal 1/2
+  command: kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v0.34.1/deploy/static/provider/baremetal/deploy.yaml
+  become: yes
+  become_user: vagrant
+  when: true
+
+- name: installing ingres  for Baremetal 2/2  -> loadbalncer
+  shell: "kubectl get svc ingress-nginx-controller -n ingress-nginx -o yaml | sed 's/type: NodePort/type: LoadBalancer/' | kubectl apply -f -"
+  become: yes
+  become_user: vagrant
+
 
 - import_tasks: utils.yaml
   vars:
     role_status: 'configureKubeadm'
+  when: true

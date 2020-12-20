@@ -1,2 +1,4 @@
 ---
 net_pod_networks: 172.16.0.0/16
+metallb_l2_ip_start: 192.168.1.240
+metallb_l2_ip_end: 192.168.1.250
