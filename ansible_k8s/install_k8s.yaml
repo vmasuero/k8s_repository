@@ -32,11 +32,6 @@
         name:  configureKubeadm
       when: not k8s_status.configureKubeadm
 
-    - name: Installing Pre-requisities 
-      yum:
-        name:
-          - git
-      when: not k8s_status.configureKubeadm
     
 - hosts: k8snode1 k8snode2
   remote_user: root
